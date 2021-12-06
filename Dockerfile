@@ -63,6 +63,16 @@ RUN mkdir install_python \
 ENV PATH=${PATH}:/opt/python39/bin
 ENV LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/opt/python39/lib
 
+# installation of the UPX library (all in single RUN to have only one docker layer which saves disk space)
+WORKDIR /tmp/
+RUN mkdir install_upx \
+ && cd install_upx \
+ && wget https://github.com/upx/upx/releases/download/v3.96/upx-3.96-amd64_linux.tar.xz \
+ && tar -xf upx-3.96-amd64_linux.tar.xz \
+ && cp upx-3.96-amd64_linux/upx /usr/local/bin/ \
+ && cd /tmp \
+ && rm -rf /tmp/install_upx
+
 WORKDIR /app/
 
 # version cross-check
