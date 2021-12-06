@@ -8,8 +8,7 @@ LABEL org.opencontainers.image.authors="leszek.grzanka@gmail.com"
 RUN rpm --query glibc
 RUN ldd --version
 
-# Centos 6 is EOL and is no longer available from the usual mirrors, so switch
-# to https://vault.centos.org
+# Centos 6 is EOL and is no longer available from the usual mirrors, so switch to https://vault.centos.org
 RUN sed -i 's/enabled=1/enabled=0/g' /etc/yum/pluginconf.d/fastestmirror.conf && \
     sed -i 's/^mirrorlist/#mirrorlist/g' /etc/yum.repos.d/*.repo && \
     sed -i 's;^#baseurl=http://mirror;baseurl=https://vault;g' /etc/yum.repos.d/*.repo
@@ -26,6 +25,7 @@ RUN ldd --version
 
 # it seems libffi is not available as RPM package in yum repo, I've tried:
 # RUN yum install -y wget perl gcc libffi-devel
+WORKDIR /tmp/
 RUN wget --no-check-certificate http://vault.centos.org/centos/6/os/x86_64/Packages/libffi-devel-3.0.5-3.2.el6.x86_64.rpm \
  && rpm -ivh  libffi-devel-3.0.5-3.2.el6.x86_64.rpm \
  && rm --force libffi*.rpm
@@ -63,9 +63,19 @@ RUN mkdir install_python \
 ENV PATH=${PATH}:/opt/python39/bin
 ENV LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/opt/python39/lib
 
+# installation of the UPX library, pyinstaller uses it to produce smaller executables (all in single RUN to have only one docker layer which saves disk space)
+WORKDIR /tmp/
+RUN mkdir install_upx \
+ && cd install_upx \
+ && wget https://github.com/upx/upx/releases/download/v3.96/upx-3.96-amd64_linux.tar.xz \
+ && tar -xf upx-3.96-amd64_linux.tar.xz \
+ && cp upx-3.96-amd64_linux/upx /usr/local/bin/ \
+ && cd /tmp \
+ && rm -rf /tmp/install_upx
+
 WORKDIR /app/
 
-# version cross-check
+# python and pip version cross-check
 RUN python --version
 RUN python3 --version
 RUN python3 -m pip --version
@@ -81,5 +91,5 @@ RUN pip3 --version
 
 RUN pip install wheel setuptools
 
-# it seems pyinstaller > 4 cannot compile on Centos6
+# installation of pyinstaller v3.x, as versions newer than 4.0 failed to install
 RUN pip install "pyinstaller<4"
